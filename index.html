@@ -157,6 +157,18 @@
   button.lock.on{background:color-mix(in srgb, var(--c) 16%, transparent); border-color:var(--c)}
   button.dice:focus-visible,button.lock:focus-visible{outline:2.5px solid var(--c); outline-offset:2px}
 
+  /* Passphrase gate */
+  .pass-gate{display:flex; justify-content:center; padding:24px 0 10px}
+  .gate-card{max-width:430px; width:100%; text-align:center; background:var(--card); border:1px solid var(--border);
+    border-radius:22px; padding:32px 26px; box-shadow:var(--shadow)}
+  .gate-icon{font-size:34px; line-height:1; margin-bottom:8px}
+  .gate-title{font-size:21px; font-weight:800; letter-spacing:-0.02em; margin:0 0 6px}
+  .gate-note{font-size:14px; color:var(--soft); margin:0 auto 20px; max-width:32ch; font-weight:500}
+  .gate-form{display:flex; gap:9px; justify-content:center; flex-wrap:wrap}
+  .gate-form .fieldin{flex:1; min-width:170px; width:auto}
+  .gate-form .ctl{margin:0}
+  #pass-msg{text-align:center; margin-top:12px}
+
   /* Share codes + roster */
   .share-io{margin-top:26px; background:var(--card); border:1px solid var(--border); border-radius:20px; padding:18px; box-shadow:var(--shadow)}
   .live-banner{display:flex; align-items:center; gap:13px; flex-wrap:wrap;
@@ -334,6 +346,19 @@
   <section class="panel" id="panel-picks" role="tabpanel" aria-labelledby="tab-picks" hidden>
     <div class="wrap">
       <div class="block">
+        <div id="pass-gate" class="pass-gate">
+          <div class="gate-card">
+            <div class="gate-icon">🔒</div>
+            <h3 class="gate-title">Family passphrase</h3>
+            <p class="gate-note">Enter the family passphrase to open the shared costume board.</p>
+            <form id="pass-form" class="gate-form" autocomplete="off">
+              <input id="pass-input" class="fieldin" type="password" placeholder="Passphrase" aria-label="Family passphrase" autocomplete="off">
+              <button type="submit" class="ctl primary">Unlock</button>
+            </form>
+            <p class="io-msg" id="pass-msg" role="status" aria-live="polite"></p>
+          </div>
+        </div>
+        <div id="picks-content" hidden>
         <p class="sec-note">Pick <b>your own</b> costume for each dress-up day — type it, tap 🎲 for a surprise, or 🔒 to lock it in. Everyone's picks show up on the board below.</p>
 
         <div class="crew">
@@ -370,6 +395,7 @@
 
         <h3 class="roster-title">Everyone's picks</h3>
         <div id="roster" class="roster"></div>
+        </div>
       </div>
     </div>
   </section>
@@ -669,39 +695,71 @@
     picks.roster={}; savePicks(); renderRoster(); flash("Cleared everyone else's picks.","ok");
   });
 
+  // ----- Passphrase gate + real-time board -----
+  const VERIFY_HASH = "88a0d33e595d2d0617fe2331ed4b6e3ae4185c147b86e300f4bde8715312fa60";
+  async function sha256hex(str){
+    const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+    return [...new Uint8Array(buf)].map(b=>b.toString(16).padStart(2,"0")).join("");
+  }
   // Real-time board — active only when the Firebase SDK loaded (i.e. on the hosted site)
-  function setupRealtime(){
+  function setupRealtime(room){
     if(typeof firebase==="undefined" || !firebase.database || typeof FIREBASE_CONFIG==="undefined") return null;
     try{
       if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
       const db = firebase.database();
       let uid = localStorage.getItem("wdw-uid");
       if(!uid){ uid = "u"+Math.random().toString(36).slice(2,10)+Date.now().toString(36); localStorage.setItem("wdw-uid", uid); }
-      const myRef = db.ref("board/"+uid);
+      const base = "board/"+room;
+      const myRef = db.ref(base+"/"+uid);
       let t=null;
       function pushMine(){ clearTimeout(t); t=setTimeout(()=>{
         myRef.set({ name:(picks.me.name||"").trim(), vals:nonEmpty(myVals), ts:firebase.database.ServerValue.TIMESTAMP }).catch(()=>{});
       }, 350); }
-      db.ref("board").on("value", snap=>{ liveBoard = snap.val() || {}; renderRoster(); }, ()=>{});
+      db.ref(base).on("value", snap=>{ liveBoard = snap.val() || {}; renderRoster(); }, ()=>{});
       return { pushMine, uid, db };
     }catch(e){ return null; }
   }
-  RT = setupRealtime();
-  if(RT){
+  function activateLiveUI(){
     const ct=document.getElementById("code-tools"); if(ct) ct.hidden=true;
     const cp=document.getElementById("copy-picks"); if(cp) cp.hidden=true;
     const bn=document.getElementById("live-banner"); if(bn) bn.hidden=false;
     const cl=document.getElementById("copy-link");
-    if(cl) cl.addEventListener("click", ()=>{
+    if(cl && !cl.dataset.wired){ cl.dataset.wired="1"; cl.addEventListener("click", ()=>{
       const url = location.href.split("#")[0].split("?")[0];
       const done = ()=>flash("Link copied! Send it to the family. 🎉","ok");
       if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done).catch(()=>flash(url,"ok")); }
       else flash(url,"ok");
-    });
+    }); }
   }
-
-  updateShareOut();
-  renderRoster();
+  async function connectBoard(pass){
+    let room=null; try{ room = await sha256hex("disney-room:"+pass); }catch(e){}
+    if(room) RT = setupRealtime(room);
+    if(RT){ activateLiveUI(); syncMine(); }
+    updateShareOut(); renderRoster();
+  }
+  function unlock(pass){
+    const gate=document.getElementById("pass-gate"); if(gate) gate.hidden=true;
+    const content=document.getElementById("picks-content"); if(content) content.hidden=false;
+    try{ localStorage.setItem("wdw-pass", pass); }catch(e){}
+    connectBoard(pass);
+  }
+  const passForm=document.getElementById("pass-form");
+  const passMsg=document.getElementById("pass-msg");
+  if(passForm){ passForm.addEventListener("submit", async e=>{
+    e.preventDefault();
+    const val=(document.getElementById("pass-input").value||"").trim();
+    if(!val) return;
+    let h=null; try{ h=await sha256hex("disney-verify:"+val); }catch(err){}
+    if(h===VERIFY_HASH){ if(passMsg) passMsg.textContent=""; unlock(val); }
+    else if(passMsg){ passMsg.textContent="That passphrase didn't match. Try again."; passMsg.className="io-msg err"; }
+  }); }
+  // Auto-unlock if this device already entered the right passphrase before
+  (async ()=>{
+    const saved=localStorage.getItem("wdw-pass");
+    if(saved){ let h=null; try{ h=await sha256hex("disney-verify:"+saved); }catch(e){}
+      if(h===VERIFY_HASH){ unlock(saved); return; } }
+    updateShareOut(); renderRoster();
+  })();
 
   const boxes = [...document.querySelectorAll('input.vis')];
   const fill = document.getElementById("fill");
