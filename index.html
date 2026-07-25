@@ -1,0 +1,715 @@
+<title>Our Disney Week</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root{
+    --bg:#F7F8FB; --card:#FFFFFF; --card-2:#FBFBFD;
+    --ink:#1B1E2B; --soft:#5C6072; --faint:#9498A8;
+    --border:#E7E9F0; --border-2:#EEF0F5;
+    --brand:#3B62D9;
+    --shadow:0 10px 30px -14px rgba(24,28,52,0.20), 0 2px 6px -2px rgba(24,28,52,0.06);
+    --shadow-lift:0 20px 44px -18px rgba(24,28,52,0.28);
+    --sans:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif;
+    --maxw:900px;
+  }
+  @media (prefers-color-scheme: dark){
+    :root{
+      --bg:#111219; --card:#1B1D28; --card-2:#20222F;
+      --ink:#ECEDF3; --soft:#A2A6B8; --faint:#71768A;
+      --border:#2B2E3D; --border-2:#262838;
+      --brand:#6E8CF0;
+      --shadow:0 14px 34px -16px rgba(0,0,0,0.6), 0 2px 6px -2px rgba(0,0,0,0.4);
+      --shadow-lift:0 22px 48px -18px rgba(0,0,0,0.7);
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#F7F8FB; --card:#FFFFFF; --card-2:#FBFBFD;
+    --ink:#1B1E2B; --soft:#5C6072; --faint:#9498A8;
+    --border:#E7E9F0; --border-2:#EEF0F5; --brand:#3B62D9;
+    --shadow:0 10px 30px -14px rgba(24,28,52,0.20), 0 2px 6px -2px rgba(24,28,52,0.06);
+    --shadow-lift:0 20px 44px -18px rgba(24,28,52,0.28);
+  }
+  :root[data-theme="dark"]{
+    --bg:#111219; --card:#1B1D28; --card-2:#20222F;
+    --ink:#ECEDF3; --soft:#A2A6B8; --faint:#71768A;
+    --border:#2B2E3D; --border-2:#262838; --brand:#6E8CF0;
+    --shadow:0 14px 34px -16px rgba(0,0,0,0.6), 0 2px 6px -2px rgba(0,0,0,0.4);
+    --shadow-lift:0 22px 48px -18px rgba(0,0,0,0.7);
+  }
+
+  *{box-sizing:border-box}
+  body{margin:0}
+  .page{
+    font-family:var(--sans); color:var(--ink); background:var(--bg);
+    min-height:100vh; line-height:1.55; -webkit-font-smoothing:antialiased;
+    letter-spacing:-0.006em;
+  }
+  .wrap{max-width:var(--maxw); margin:0 auto; padding:0 20px}
+  a{color:inherit}
+
+  /* Theme toggle */
+  .tt{position:fixed; top:12px; right:14px; z-index:40}
+  .tt button{
+    width:40px; height:40px; border-radius:50%; cursor:pointer; font-size:17px;
+    background:var(--card); border:1px solid var(--border); color:var(--ink);
+    box-shadow:var(--shadow); display:grid; place-items:center;
+  }
+  .tt button:hover{border-color:var(--brand)}
+
+  /* Hero */
+  .hero{text-align:center; padding:66px 20px 30px; max-width:760px; margin:0 auto}
+  .stat-pill{
+    display:inline-flex; align-items:center; gap:9px; font-size:13px; font-weight:600;
+    color:var(--soft); background:var(--card); border:1px solid var(--border);
+    padding:7px 15px; border-radius:99px; box-shadow:var(--shadow); margin-bottom:22px;
+  }
+  .stat-pill .dots{display:inline-flex; gap:4px}
+  .stat-pill .dots i{width:8px; height:8px; border-radius:50%; display:block}
+  .hero h1{
+    font-size:clamp(40px,8.5vw,74px); font-weight:800; line-height:0.98;
+    letter-spacing:-0.035em; margin:0; text-wrap:balance;
+  }
+  .hero h1 .grad{
+    background:linear-gradient(96deg,#0FA89A,#3B62D9 30%,#EA4A34 55%,#E86A20 76%,#DE4C82);
+    -webkit-background-clip:text; background-clip:text; color:transparent;
+  }
+  .hero .sub{color:var(--soft); font-size:clamp(15px,2.4vw,18px); margin:18px auto 0; max-width:46ch; text-wrap:balance}
+
+  /* Packing progress */
+  .prog{max-width:520px; margin:34px auto 0}
+  .prog .top{display:flex; justify-content:space-between; align-items:baseline; margin-bottom:10px}
+  .prog .lbl{font-size:12px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--faint)}
+  .prog .pct{font-size:26px; font-weight:800; letter-spacing:-0.02em; font-variant-numeric:tabular-nums}
+  .track{height:14px; border-radius:99px; background:var(--border); overflow:hidden}
+  .fill{height:100%; width:0%; border-radius:99px;
+    background:linear-gradient(90deg,#0FA89A,#3B62D9 24%,#2E9E4A 44%,#C98A12 62%,#E86A20 80%,#DE4C82);
+    transition:width .55s cubic-bezier(.2,.85,.25,1)}
+  .prog .note{margin-top:10px; font-size:13.5px; color:var(--faint); font-weight:500}
+  .prog .note.done{color:#2E9E4A; font-weight:700}
+  .prog .hint{margin-top:4px; font-size:12px; color:var(--faint); font-weight:500; opacity:.85}
+
+  /* Sticky day nav */
+  .daynav{
+    position:sticky; top:0; z-index:30; margin-top:0;
+    background:color-mix(in srgb, var(--bg) 82%, transparent);
+    backdrop-filter:blur(12px) saturate(1.4); -webkit-backdrop-filter:blur(12px) saturate(1.4);
+    border-bottom:1px solid var(--border-2);
+  }
+  .daynav .inner{max-width:var(--maxw); margin:0 auto; display:flex; gap:8px; overflow-x:auto;
+    padding:11px 20px; scrollbar-width:none}
+  .daynav .inner::-webkit-scrollbar{display:none}
+  .navpill{
+    flex:none; display:inline-flex; align-items:center; gap:8px; cursor:pointer;
+    font-size:13px; font-weight:600; color:var(--soft); text-decoration:none;
+    padding:7px 14px; border-radius:99px; border:1px solid var(--border);
+    background:var(--card); transition:all .18s; white-space:nowrap;
+  }
+  .navpill i{width:9px; height:9px; border-radius:50%; background:var(--c); display:block}
+  .navpill:hover{border-color:var(--c); color:var(--ink)}
+  .navpill.active{background:var(--c); border-color:var(--c); color:#fff}
+  .navpill.active i{background:rgba(255,255,255,.9)}
+
+  /* Tabs */
+  .tabs{position:sticky; top:0; z-index:35;
+    background:color-mix(in srgb, var(--bg) 84%, transparent);
+    backdrop-filter:blur(12px) saturate(1.4); -webkit-backdrop-filter:blur(12px) saturate(1.4);
+    border-bottom:1px solid var(--border-2)}
+  .tabs-inner{max-width:var(--maxw); margin:0 auto; padding:12px 20px; display:flex; justify-content:center; gap:8px}
+  .tab{font-family:var(--sans); font-size:14.5px; font-weight:700; cursor:pointer;
+    padding:10px 22px; border-radius:99px; border:1px solid var(--border); background:var(--card);
+    color:var(--soft); transition:all .18s; display:inline-flex; align-items:center; gap:8px}
+  .tab:hover:not(.active){border-color:var(--ink); color:var(--ink)}
+  .tab.active{background:var(--brand); border-color:var(--brand); color:#fff; box-shadow:0 8px 18px -8px var(--brand)}
+  .tab:focus-visible{outline:2.5px solid var(--brand); outline-offset:2px}
+  .panel[hidden]{display:none}
+  .packprog{max-width:520px; margin:8px auto 26px}
+  .pagefoot{text-align:center; padding:14px 20px 60px}
+
+  /* Character picks */
+  .crew{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:16px 18px; box-shadow:var(--shadow); margin-bottom:20px}
+  .crew-lbl{font-size:12px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--faint); display:block; margin-bottom:11px}
+  .crew-inputs{display:flex; gap:10px; flex-wrap:wrap}
+  .fieldin{font-family:var(--sans); font-size:14.5px; font-weight:600; color:var(--ink);
+    background:var(--card-2); border:1px solid var(--border); border-radius:11px; padding:10px 13px; transition:border .16s; width:100%}
+  .fieldin::placeholder{color:var(--faint); font-weight:500}
+  .fieldin:focus{outline:none; border-color:var(--brand)}
+  .crew-inputs .fieldin{flex:1; min-width:130px; width:auto}
+  .pick-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(288px,1fr)); gap:16px}
+  .pickcard{background:var(--card); border:1px solid var(--border); border-radius:20px; box-shadow:var(--shadow); overflow:hidden}
+  .pick-head{display:flex; align-items:center; gap:12px; padding:15px 18px; border-bottom:1px solid var(--border-2);
+    background:color-mix(in srgb, var(--c) 8%, transparent)}
+  .pick-badge{flex:none; width:42px; height:42px; border-radius:12px; background:var(--c); color:#fff; display:grid; place-items:center; font-size:21px}
+  .pick-day{font-size:11px; font-weight:800; letter-spacing:.12em; text-transform:uppercase; color:var(--ct)}
+  .pick-theme{font-size:16.5px; font-weight:800; letter-spacing:-0.01em; line-height:1.15}
+  .pick-body{padding:13px 16px 16px; display:flex; flex-direction:column; gap:10px}
+  .pickrow{display:flex; align-items:center; gap:9px}
+  .who{flex:none; width:72px; font-size:13px; font-weight:700; color:var(--ct); overflow:hidden; text-overflow:ellipsis; white-space:nowrap}
+  .charin{flex:1; min-width:0}
+  .charin:focus{border-color:var(--c)}
+  .charin.locked{opacity:.85; cursor:default; font-weight:700; color:var(--ct);
+    background:color-mix(in srgb, var(--c) 9%, transparent); border-color:color-mix(in srgb, var(--c) 32%, transparent)}
+  button.dice,button.lock{flex:none; width:38px; height:38px; border-radius:11px; cursor:pointer; font-size:17px; color:var(--ink);
+    background:var(--card); border:1px solid var(--border); line-height:1; display:grid; place-items:center; transition:transform .16s, border-color .16s, background .16s}
+  button.dice:hover{border-color:var(--c); transform:rotate(-14deg)}
+  button.dice:active{transform:scale(.88)}
+  button.dice:disabled{opacity:.35; cursor:not-allowed}
+  button.dice:disabled:hover{transform:none; border-color:var(--border)}
+  button.lock:hover{border-color:var(--c)}
+  button.lock.on{background:color-mix(in srgb, var(--c) 16%, transparent); border-color:var(--c)}
+  button.dice:focus-visible,button.lock:focus-visible{outline:2.5px solid var(--c); outline-offset:2px}
+
+  /* Share codes + roster */
+  .share-io{margin-top:26px; background:var(--card); border:1px solid var(--border); border-radius:20px; padding:18px; box-shadow:var(--shadow)}
+  .io-lbl{display:block; font-size:11.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); margin:0 0 7px}
+  .io-box{width:100%; font-family:var(--sans); font-size:13px; font-weight:600; color:var(--ink); background:var(--card-2);
+    border:1px solid var(--border); border-radius:12px; padding:11px 13px; resize:vertical; line-height:1.45; word-break:break-all; margin-bottom:14px}
+  .io-box:focus{outline:none; border-color:var(--brand)}
+  .io-box[readonly]{color:var(--soft); font-weight:500}
+  .controls.left{justify-content:flex-start; margin:2px 0 0}
+  .io-msg{margin:11px 0 0; font-size:13px; font-weight:600; min-height:1.1em; color:var(--soft)}
+  .io-msg.ok{color:#2E9E4A}
+  .io-msg.err{color:#EA4A34}
+  .roster-title{font-size:16px; font-weight:800; letter-spacing:-0.01em; margin:32px 0 14px 2px}
+  .roster{display:flex; flex-direction:column; gap:12px}
+  .roster .empty{color:var(--faint); font-size:14px; font-weight:500; margin:0 0 4px 2px}
+  .rline{background:var(--card); border:1px solid var(--border); border-radius:16px; padding:13px 16px; box-shadow:var(--shadow)}
+  .rline-head{display:flex; align-items:center; gap:9px; margin-bottom:10px}
+  .rdot{width:11px; height:11px; border-radius:50%; background:var(--c); flex:none}
+  .rtitle{font-size:15px; font-weight:800; letter-spacing:-0.01em}
+  .rday{font-size:11px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--ct); margin-left:auto}
+  .chips{display:flex; flex-wrap:wrap; gap:8px}
+  .chip{font-size:13px; font-weight:600; color:var(--ink); background:color-mix(in srgb, var(--c) 10%, transparent);
+    border:1px solid color-mix(in srgb, var(--c) 26%, transparent); padding:5px 12px; border-radius:99px}
+  .chip b{color:var(--ct); font-weight:800}
+
+  /* Sections */
+  section.block{padding:40px 0 8px}
+  .sec-title{font-size:13px; font-weight:800; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--faint); margin:0 0 4px 4px}
+  .sec-note{font-size:13.5px; color:var(--soft); margin:0 0 20px 4px; font-weight:500}
+  .sec-note.tight{margin-bottom:20px}
+
+  /* Day cards (itinerary reference) */
+  .days{display:grid; gap:18px}
+  .day{
+    background:var(--card); border:1px solid var(--border); border-radius:22px;
+    box-shadow:var(--shadow); overflow:hidden; scroll-margin-top:122px;
+    transition:box-shadow .25s;
+  }
+  .day:hover{box-shadow:var(--shadow-lift)}
+  .day-top{display:flex; align-items:center; gap:15px; padding:20px 22px 16px}
+  .badge{
+    flex:none; width:58px; height:58px; border-radius:17px; display:grid; place-items:center;
+    background:var(--c); color:#fff; font-size:27px; box-shadow:0 8px 18px -8px var(--c); position:relative;
+  }
+  .badge .abbr{position:absolute; bottom:-9px; left:50%; transform:translateX(-50%);
+    font-size:9.5px; font-weight:800; letter-spacing:.09em; color:#fff; background:var(--c);
+    padding:2px 7px; border-radius:99px; border:2px solid var(--card)}
+  .day-head{flex:1; min-width:0}
+  .day-when{font-size:11.5px; font-weight:800; letter-spacing:.14em; text-transform:uppercase; color:var(--ct)}
+  .day-park{font-size:22px; font-weight:800; letter-spacing:-0.02em; margin:1px 0 0; line-height:1.12}
+  .theme{margin:0 22px 6px 95px}
+  .theme span{
+    display:inline-flex; align-items:center; gap:7px; font-size:12.5px; font-weight:700;
+    padding:5px 13px; border-radius:99px; color:var(--ct);
+    background:color-mix(in srgb, var(--c) 13%, transparent);
+    border:1px solid color-mix(in srgb, var(--c) 28%, transparent);
+  }
+
+  /* Itinerary timeline */
+  ul.timeline{list-style:none; margin:6px 0 0; padding:6px 22px 18px 24px}
+  li.ev{display:flex; gap:15px; padding:8px 0; position:relative}
+  li.ev::before{content:""; position:absolute; left:5px; top:19px; bottom:-8px; width:2px;
+    background:color-mix(in srgb, var(--c) 24%, transparent)}
+  li.ev:last-child::before{display:none}
+  .dot{flex:none; width:12px; height:12px; border-radius:50%; background:var(--c); margin-top:6px;
+    position:relative; z-index:1; box-shadow:0 0 0 4px color-mix(in srgb, var(--c) 15%, transparent)}
+  .ev-txt{flex:1; min-width:0}
+  .itime{display:inline-block; font-weight:800; font-size:12px; color:#fff; background:var(--c);
+    padding:2px 8px; border-radius:7px; margin-right:8px; letter-spacing:.01em; vertical-align:1px;
+    font-variant-numeric:tabular-nums}
+  .ev-main{font-weight:700; font-size:15.5px}
+  .isub{display:block; font-size:13px; color:var(--soft); margin-top:2px; font-weight:500}
+
+  /* Packing list */
+  .pack-grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(258px,1fr)); gap:16px}
+  .pcol{background:var(--card); border:1px solid var(--border); border-radius:20px; padding:18px 18px 12px; box-shadow:var(--shadow)}
+  .pcol h3{display:flex; align-items:center; gap:11px; margin:0 0 3px; font-size:16px; font-weight:800; letter-spacing:-0.01em}
+  .pchip{flex:none; width:34px; height:34px; border-radius:11px; display:grid; place-items:center; font-size:17px;
+    background:color-mix(in srgb, var(--pc) 16%, transparent); border:1px solid color-mix(in srgb, var(--pc) 30%, transparent)}
+  .pcol .pc-count{font-size:11.5px; font-weight:700; letter-spacing:.05em; color:var(--faint); margin:0 0 8px 45px}
+  .pcol ul{list-style:none; margin:0; padding:0}
+  .pcol li label{display:flex; align-items:flex-start; gap:12px; cursor:pointer; padding:8px 6px; border-radius:10px; transition:background .16s; font-size:14.5px; font-weight:500}
+  .pcol li label:hover{background:var(--card-2)}
+  .check{flex:none; width:21px; height:21px; margin-top:1px; border-radius:7px;
+    border:2.5px solid var(--border); background:var(--card); position:relative; transition:all .16s; --c:var(--pc)}
+  .check::after{content:""; position:absolute; left:6px; top:2.5px; width:5px; height:9px;
+    border:solid #fff; border-width:0 2.6px 2.6px 0; transform:rotate(45deg) scale(0); opacity:0; transition:all .16s}
+  .pcol input:checked ~ .check{background:var(--pc); border-color:var(--pc)}
+  .pcol input:checked ~ .check::after{transform:rotate(45deg) scale(1); opacity:1}
+  .pcol input:checked ~ span{color:var(--faint); text-decoration:line-through; text-decoration-color:var(--pc)}
+  input.vis{position:absolute; opacity:0; width:0; height:0}
+  label:focus-within .check{outline:2.5px solid var(--pc); outline-offset:2px}
+  .pcol li.flag span{font-weight:700; color:var(--ct2, var(--ink))}
+
+  /* Footer */
+  .footer{padding:38px 0 60px; text-align:center}
+  .controls{display:flex; gap:11px; justify-content:center; flex-wrap:wrap; margin-bottom:22px}
+  button.ctl{font-family:var(--sans); font-size:14px; font-weight:700; cursor:pointer; padding:11px 22px; border-radius:99px; transition:all .16s; border:1px solid var(--border)}
+  .ctl.primary{background:var(--brand); color:#fff; border-color:var(--brand); box-shadow:0 10px 22px -10px var(--brand)}
+  .ctl.primary:hover{filter:brightness(1.07)}
+  .ctl.ghost{background:var(--card); color:var(--ink)}
+  .ctl.ghost:hover{border-color:var(--ink)}
+  button.ctl:focus-visible{outline:2.5px solid var(--brand); outline-offset:2px}
+  .foot-note{font-size:13.5px; color:var(--faint); max-width:46ch; margin:0 auto; font-weight:500}
+  .foot-sig{font-size:15px; font-weight:800; letter-spacing:-0.01em; margin-top:16px;
+    background:linear-gradient(96deg,#3B62D9,#EA4A34,#DE4C82); -webkit-background-clip:text; background-clip:text; color:transparent}
+
+  @media (max-width:560px){
+    .hero{padding:52px 16px 24px}
+    .theme{margin-left:20px}
+    .day-top{flex-wrap:wrap}
+  }
+  @keyframes pop{0%{transform:scale(1)}45%{transform:scale(1.28)}100%{transform:scale(1)}}
+  .check.pop{animation:pop .3s ease}
+  @media (prefers-reduced-motion:reduce){*{transition:none !important; animation:none !important}}
+</style>
+
+<div class="page">
+  <div class="tt"><button id="tt" aria-label="Toggle light or dark theme">◐</button></div>
+
+  <header class="hero">
+    <span class="stat-pill">
+      <span class="dots" id="herodots" aria-hidden="true"></span>
+      August 2–8, 2026 · 4 parks · Grand Floridian
+    </span>
+    <h1>Our <span class="grad">Disney</span> Week</h1>
+    <p class="sub">Seven days at Walt Disney World, from Grand Floridian check-in to one last character breakfast. Flip between the day-by-day plan and the family packing list.</p>
+  </header>
+
+  <div class="tabs">
+    <div class="tabs-inner" role="tablist" aria-label="Views">
+      <button class="tab active" id="tab-itin" role="tab" aria-selected="true" data-tab="itin">🗓️ Itinerary</button>
+      <button class="tab" id="tab-pack" role="tab" aria-selected="false" data-tab="pack">🧳 Packing List</button>
+      <button class="tab" id="tab-picks" role="tab" aria-selected="false" data-tab="picks">🎭 Character Picks</button>
+    </div>
+  </div>
+
+  <section class="panel" id="panel-itin" role="tabpanel" aria-labelledby="tab-itin">
+    <nav class="daynav"><div class="inner" id="daynav"></div></nav>
+    <div class="wrap">
+      <div class="block">
+        <p class="sec-note tight">All dining and reservations are booked — this is just the plan, day by day.</p>
+        <div class="days" id="days"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-pack" role="tabpanel" aria-labelledby="tab-pack" hidden>
+    <div class="wrap">
+      <div class="block">
+        <div class="prog packprog">
+          <div class="top"><span class="lbl">Packing progress</span><span class="pct" id="pct">0%</span></div>
+          <div class="track"><div class="fill" id="fill"></div></div>
+          <div class="note" id="note">0 of 0 packed</div>
+        </div>
+        <p class="sec-note">Packing for a hot, humid August week — plenty of walking, pool time, and dress-up. No stroller this year, so pack light and comfy.</p>
+        <div class="pack-grid" id="packing"></div>
+        <div class="controls">
+          <button class="ctl primary" id="checkall">Mark all packed</button>
+          <button class="ctl ghost" id="reset">Reset list</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel" id="panel-picks" role="tabpanel" aria-labelledby="tab-picks" hidden>
+    <div class="wrap">
+      <div class="block">
+        <p class="sec-note">Pick <b>your own</b> costume for each dress-up day (type it, tap 🎲 for a surprise, or 🔒 to lock it in). Then tap <b>Copy my picks</b> and share the code with the family. Paste anyone else's code below to see everyone together. Your picks save on this device.</p>
+
+        <div class="crew">
+          <span class="crew-lbl">Your name</span>
+          <div class="crew-inputs"><input class="fieldin" id="myname" placeholder="e.g. Auntie K" maxlength="24" aria-label="Your name"></div>
+        </div>
+
+        <div class="pick-grid" id="picks"></div>
+
+        <div class="controls">
+          <button class="ctl ghost" id="surprise-me">🎲 Surprise me</button>
+          <button class="ctl primary" id="copy-picks">📋 Copy my picks</button>
+          <button class="ctl ghost" id="clear-mine">Clear mine</button>
+        </div>
+
+        <div class="share-io">
+          <label class="io-lbl" for="share-out">Your picks code — copy &amp; send to the family</label>
+          <textarea id="share-out" class="io-box" readonly rows="2" aria-label="Your picks code"></textarea>
+          <label class="io-lbl" for="share-in">Add someone's picks</label>
+          <textarea id="share-in" class="io-box" rows="2" placeholder="Paste a family member's picks code here…" aria-label="Paste a picks code"></textarea>
+          <div class="controls left">
+            <button class="ctl primary" id="add-picks">Add these picks</button>
+            <button class="ctl ghost" id="clear-roster">Clear everyone</button>
+          </div>
+          <p class="io-msg" id="io-msg" role="status" aria-live="polite"></p>
+        </div>
+
+        <h3 class="roster-title">Everyone's picks</h3>
+        <div id="roster" class="roster"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="pagefoot">
+    <p class="foot-note">Checkmarks and character picks save automatically on your own device, so everyone can plan at their own pace.</p>
+    <p class="foot-sig">See ya real soon!</p>
+  </footer>
+</div>
+
+<script>
+  const DAYS = [
+    { id:"sun", when:"Sunday", abbr:"SUN", date:"August 2", park:"Grand Floridian", icon:"🛎️", c:"#0FA89A",
+      theme:"Alice in Wonderland",
+      items:[
+        {t:"Check in at the Grand Floridian", s:"Settle into Disney's flagship resort"},
+        {time:"2:40pm", t:"Afternoon Tea", s:"The Garden View Lounge — scones, sweets & sips"},
+        {t:"Pool day", s:"Ease into vacation mode by the water"},
+      ] },
+    { id:"mon", when:"Monday", abbr:"MON", date:"August 3", park:"Magic Kingdom", icon:"🏰", c:"#3B62D9",
+      theme:"Favorite Character",
+      items:[
+        {t:"Rope drop at Magic Kingdom", s:"Straight up Main Street to the castle"},
+        {time:"8:30am", t:"Cinderella's Royal Table breakfast", s:"Dining in the castle — bring the princess energy"},
+        {time:"9:00pm", t:"Fireworks Dessert Party", s:"Post-party sweets with a front-row sky show"},
+      ] },
+    { id:"tue", when:"Tuesday", abbr:"TUE", date:"August 4", park:"Hollywood Studios", icon:"🎬", c:"#EA4A34",
+      theme:"Toy Story",
+      items:[
+        {t:"Morning at Hollywood Studios", s:"Toy Story Land + Galaxy's Edge"},
+        {time:"12:35pm", t:"Roundup Rodeo BBQ lunch", s:"Inside Toy Story Land"},
+        {time:"7:30pm", t:"Sci-Fi Dine-In Theater dinner", s:"Eat in a car under the drive-in stars"},
+        {time:"9:00 / 10:30pm", t:"Fantasmic! show", s:"Pick a showtime — arrive early for seats"},
+      ] },
+    { id:"wed", when:"Wednesday", abbr:"WED", date:"August 5", park:"EPCOT", icon:"🌐", c:"#2E9E4A",
+      theme:"Pick a Country",
+      items:[
+        {t:"Explore EPCOT", s:"Future World + travel the World Showcase"},
+        {time:"12:45pm", t:"Space 220 lunch", s:"Dining 220 miles up — window seats to Earth"},
+      ] },
+    { id:"thu", when:"Thursday", abbr:"THU", date:"August 6", park:"VIP Tour — All Parks", icon:"✨", c:"#C98A12",
+      theme:"Luxury Disney",
+      items:[
+        {t:"Private VIP tour across all four parks", s:"Backstage access, skip-the-lines, hopping in style"},
+        {time:"7:30pm", t:"California Grill dinner", s:"Top of the Contemporary — time it with the MK fireworks"},
+      ] },
+    { id:"fri", when:"Friday", abbr:"FRI", date:"August 7", park:"Animal Kingdom", icon:"🦁", c:"#E86A20",
+      theme:"Zootopia + Halloween costume",
+      items:[
+        {t:"Day at Animal Kingdom", s:"Pandora, safaris, and Zootopia vibes"},
+        {time:"4:00pm", t:"MNSSHP gates open", s:"Mickey's Not-So-Scary Halloween Party — costumes on!"},
+        {time:"7:00pm", t:"Halloween party begins", s:"Trick-or-treating, parade, and spooky-cute fun"},
+      ] },
+    { id:"sat", when:"Saturday", abbr:"SAT", date:"August 8", park:"Farewell Breakfast", icon:"🥞", c:"#DE4C82",
+      items:[
+        {time:"10:30am", t:"Breakfast at 1900 Park Fare", s:"One last character breakfast before goodbye"},
+      ] },
+  ];
+
+  const PACKING = [
+    { id:"bag", title:"Park Day Bag", icon:"🎒", c:"#3B62D9", items:[
+      "MagicBands & park tickets","Sunscreen SPF 50+ & lip balm","Refillable water bottles","Portable chargers & cables",
+      "Ponchos or light rain jackets","Hats & sunglasses","Cooling towels & handheld fans","Hand sanitizer & wipes",
+      "Snacks for the little one","Small backpack or crossbody","Cash, cards & IDs","Ziplock bags (phones on water rides)"
+    ]},
+    { id:"health", title:"Health & Meds", icon:"🩺", c:"#EA4A34", items:[
+      {t:"EpiPens (x2) — carry at all times", flag:true},
+      "Daily prescription meds","Child's pain & fever reliever","Allergy medicine","Motion-sickness relief",
+      "First-aid kit & blister pads","Anti-chafe balm (Body Glide)","Aloe vera for sunburn","Bug spray","Tissues & extra masks"
+    ]},
+    { id:"clothes", title:"Clothing & Shoes", icon:"👕", c:"#2E9E4A", items:[
+      "Lightweight outfits (7+ days)","Broken-in walking shoes (2 pairs)","Socks & underwear","Swimsuits & cover-ups",
+      "Pajamas","Dressy outfit for California Grill","Extra outfit changes for the 6-year-old","Flip-flops / sandals"
+    ]},
+    { id:"themes", title:"Dress-Up Themes", icon:"🎭", c:"#DE4C82", items:[
+      "Sun — Alice in Wonderland","Mon — Favorite Character","Tue — Toy Story","Wed — EPCOT 'Pick a Country'",
+      "Thu — Luxury Disney (dress nice)","Fri — Halloween costumes (MNSSHP)"
+    ]},
+    { id:"toiletries", title:"Toiletries", icon:"🧴", c:"#0FA89A", items:[
+      "Toothbrushes & toothpaste","Deodorant","Shampoo, conditioner & body wash","Skincare & sunscreen refills",
+      "Hairbrush, ties & products","Razors","Feminine products","Nail clippers & tweezers"
+    ]},
+    { id:"extras", title:"Magic Extras", icon:"🪄", c:"#C98A12", items:[
+      "Autograph books & fat pens","Disney trading pins","Glow accessories for night shows","Camera / GoPro & memory cards",
+      "Extra battery packs","Comfort item / small stuffed animal","Tablet & headphones for the little one","Laundry bag for dirty clothes"
+    ]},
+  ];
+
+  const KEY = "wdw-packing-v2";
+  let state = {};
+  try{ state = JSON.parse(localStorage.getItem(KEY) || "{}"); }catch(e){ state = {}; }
+  const save = ()=>{ try{ localStorage.setItem(KEY, JSON.stringify(state)); }catch(e){} };
+  const esc = s => String(s).replace(/[&<>"]/g, c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+  document.getElementById("herodots").innerHTML = DAYS.map(d=>`<i style="background:${d.c}"></i>`).join("");
+
+  document.getElementById("daynav").innerHTML = DAYS.map(d=>
+    `<a class="navpill" href="#day-${d.id}" data-nav="${d.id}" style="--c:${d.c}"><i></i>${esc(d.abbr)}</a>`
+  ).join("");
+
+  document.getElementById("days").innerHTML = DAYS.map(d=>{
+    const rows = d.items.map(it=>{
+      const time = it.time ? `<span class="itime">${esc(it.time)}</span>` : "";
+      const sub = it.s ? `<span class="isub">${esc(it.s)}</span>` : "";
+      return `<li class="ev"><span class="dot"></span><div class="ev-txt"><span class="ev-main">${time}${esc(it.t)}</span>${sub}</div></li>`;
+    }).join("");
+    const theme = d.theme ? `<div class="theme"><span>🎭 Theme: ${esc(d.theme)}</span></div>` : "";
+    return `<article class="day" id="day-${d.id}" data-day="${d.id}" style="--c:${d.c}; --ct:color-mix(in srgb, ${d.c} 70%, var(--ink))">
+      <div class="day-top">
+        <div class="badge">${d.icon}<span class="abbr">${esc(d.abbr)}</span></div>
+        <div class="day-head">
+          <div class="day-when">${esc(d.when)} · ${esc(d.date)}</div>
+          <div class="day-park">${esc(d.park)}</div>
+        </div>
+      </div>
+      ${theme}
+      <ul class="timeline">${rows}</ul>
+    </article>`;
+  }).join("");
+
+  document.getElementById("packing").innerHTML = PACKING.map(col=>{
+    const rows = col.items.map((it,i)=>{
+      const key = `p.${col.id}.${i}`;
+      const txt = typeof it === "string" ? it : it.t;
+      const flag = (typeof it === "object" && it.flag) ? " flag" : "";
+      return `<li class="${flag.trim()}"><label>
+        <input type="checkbox" class="vis" data-key="${key}" ${state[key]?"checked":""}>
+        <span class="check"></span><span>${esc(txt)}</span>
+      </label></li>`;
+    }).join("");
+    return `<div class="pcol" style="--pc:${col.c}; --ct2:color-mix(in srgb, ${col.c} 68%, var(--ink))">
+      <h3><span class="pchip">${col.icon}</span>${esc(col.title)}</h3>
+      <div class="pc-count" data-colcount="${col.id}"></div>
+      <ul>${rows}</ul>
+    </div>`;
+  }).join("");
+
+  // ---------- Character picks ----------
+  const PICKS_KEY = "wdw-picks-v1";
+  let picks = {}; try{ picks = JSON.parse(localStorage.getItem(PICKS_KEY)||"{}"); }catch(e){ picks={}; }
+  if(!Array.isArray(picks.names)) picks.names = ["","",""];
+  if(!picks.locks || typeof picks.locks!=="object") picks.locks = {};
+  const savePicks = ()=>{ try{ localStorage.setItem(PICKS_KEY, JSON.stringify(picks)); }catch(e){} };
+  const NPEOPLE = 3;
+  const dayById = Object.fromEntries(DAYS.map(d=>[d.id,d]));
+  const PICK_THEMES = [
+    { key:"sun", day:"sun", icon:"🫖", title:"Alice in Wonderland", noun:"character",
+      pool:["Alice","Mad Hatter","White Rabbit","Queen of Hearts","Cheshire Cat","Caterpillar","Tweedledee & Tweedledum","Dormouse","King of Hearts"] },
+    { key:"mon", day:"mon", icon:"🏰", title:"Favorite Character", noun:"character",
+      pool:["Mickey Mouse","Minnie Mouse","Stitch","Elsa","Moana","Buzz Lightyear","Simba","Belle","Ariel","Winnie the Pooh","Peter Pan","Tinker Bell"] },
+    { key:"tue", day:"tue", icon:"🤠", title:"Toy Story", noun:"character",
+      pool:["Woody","Buzz Lightyear","Jessie","Bo Peep","Rex","Slinky Dog","Mr. Potato Head","Forky","Bullseye","Trixie"] },
+    { key:"wed", day:"wed", icon:"🌍", title:"Pick a Country", noun:"country",
+      pool:["Mexico 🇲🇽","Norway 🇳🇴","China 🇨🇳","Germany 🇩🇪","Italy 🇮🇹","USA 🇺🇸","Japan 🇯🇵","Morocco 🇲🇦","France 🇫🇷","United Kingdom 🇬🇧","Canada 🇨🇦"] },
+    { key:"thu", day:"thu", icon:"🥂", title:"Luxury Disney", noun:"look",
+      pool:["Gold-and-glam Disneybound","Old-Hollywood elegance","All-white resort chic","Sparkle & sequins","Little black dress","Dapper little prince"] },
+    { key:"fri-zoo", day:"fri", icon:"🦊", title:"Zootopia", noun:"character",
+      pool:["Judy Hopps","Nick Wilde","Officer Clawhauser","Gazelle","Flash the Sloth","Mayor Lionheart","Finnick","Chief Bogo","Mr. Big"] },
+    { key:"fri-hw", day:"fri", icon:"🎃", title:"Halloween Party Costume", noun:"costume",
+      pool:["Classic witch","Disney villain","Superhero of choice","Pumpkin cutie","Mickey pumpkin","Skeleton","Friendly ghost","Black cat","Sanderson sister","Maleficent","Jack Skellington","Vampire"] },
+  ];
+  const poolByKey = Object.fromEntries(PICK_THEMES.map(t=>[t.key, t.pool]));
+  // Migrate to the "your own picks" shape
+  if(!picks.me || typeof picks.me!=="object") picks.me = { name:"", vals:{}, locks:{} };
+  if(typeof picks.me.name!=="string") picks.me.name="";
+  if(!picks.me.vals || typeof picks.me.vals!=="object") picks.me.vals={};
+  if(!picks.me.locks || typeof picks.me.locks!=="object") picks.me.locks={};
+  if(!picks.roster || typeof picks.roster!=="object") picks.roster={};
+  const myVals = picks.me.vals;
+  function isLocked(key){ return !!picks.me.locks[key]; }
+  function nonEmpty(o){ const r={}; for(const k in o){ const v=o[k]; if(v && String(v).trim()) r[k]=v; } return r; }
+
+  // Unicode-safe share code
+  function enc(obj){ try{ return "DISNEY1:"+btoa(unescape(encodeURIComponent(JSON.stringify(obj)))); }catch(e){ return ""; } }
+  function dec(str){ if(!str) return null; str=String(str).trim(); const i=str.indexOf("DISNEY1:"); if(i<0) return null;
+    try{ return JSON.parse(decodeURIComponent(escape(atob(str.slice(i+8).trim())))); }catch(e){ return null; } }
+
+  document.getElementById("myname").value = picks.me.name || "";
+
+  document.getElementById("picks").innerHTML = PICK_THEMES.map(t=>{
+    const d = dayById[t.day]; const key=t.key; const locked=isLocked(key);
+    return `<div class="pickcard" style="--c:${d.c}; --ct:color-mix(in srgb, ${d.c} 70%, var(--ink))">
+      <div class="pick-head">
+        <div class="pick-badge">${t.icon}</div>
+        <div><div class="pick-day">${esc(d.when)} · ${esc(d.date)}</div><div class="pick-theme">${esc(t.title)}</div></div>
+      </div>
+      <div class="pick-body">
+        <div class="pickrow" data-row="${key}">
+          <input class="fieldin charin${locked?" locked":""}" data-pick="${key}" placeholder="Your ${esc(t.noun)}…" value="${esc(myVals[key]||"")}" maxlength="40"${locked?" readonly":""}>
+          <button class="dice" data-key="${key}" aria-label="Surprise ${esc(t.noun)}"${locked?" disabled":""}>🎲</button>
+          <button class="lock${locked?" on":""}" data-lock="${key}" aria-pressed="${locked?"true":"false"}" aria-label="Lock this choice">${locked?"🔒":"🔓"}</button>
+        </div>
+      </div>
+    </div>`;
+  }).join("");
+
+  const outEl = document.getElementById("share-out");
+  const msgEl = document.getElementById("io-msg");
+  function flash(text, kind){ msgEl.textContent=text; msgEl.className = "io-msg" + (kind?(" "+kind):""); }
+  function updateShareOut(){ outEl.value = enc({ n:(picks.me.name||"").trim(), p:nonEmpty(myVals) }); }
+
+  function renderRoster(){
+    const meName = (picks.me.name||"").trim() || "You";
+    const everyone = [{ name:meName, vals:myVals, me:true }];
+    for(const nm in picks.roster){ if(nm===meName) continue; everyone.push({ name:nm, vals:picks.roster[nm] }); }
+    let html = "";
+    PICK_THEMES.forEach(t=>{
+      const chips = everyone.map(p=>{ const v=p.vals && p.vals[t.key];
+        if(!v || !String(v).trim()) return "";
+        return `<span class="chip"><b>${esc(p.name)}${p.me?" (you)":""}:</b> ${esc(v)}</span>`;
+      }).filter(Boolean).join("");
+      if(chips){ const d=dayById[t.day];
+        html += `<div class="rline" style="--c:${d.c}; --ct:color-mix(in srgb, ${d.c} 70%, var(--ink))">
+          <div class="rline-head"><span class="rdot"></span><span class="rtitle">${esc(t.title)}</span><span class="rday">${esc(d.when)}</span></div>
+          <div class="chips">${chips}</div></div>`;
+      }
+    });
+    document.getElementById("roster").innerHTML = html ||
+      `<p class="empty">No picks yet. Choose yours above, or paste a family member's code to add them here.</p>`;
+  }
+
+  function randomFor(key){
+    if(isLocked(key)) return;
+    const pool = poolByKey[key] || []; if(!pool.length) return;
+    const cur = myVals[key];
+    let pick = pool[Math.floor(Math.random()*pool.length)];
+    if(pool.length>1){ let g=0; while(pick===cur && g++<8) pick = pool[Math.floor(Math.random()*pool.length)]; }
+    myVals[key]=pick; savePicks();
+    const inp=document.querySelector(`.charin[data-pick="${key}"]`); if(inp) inp.value=pick;
+    updateShareOut(); renderRoster();
+  }
+  function applyLock(key){
+    const row=document.querySelector(`[data-row="${key}"]`); if(!row) return;
+    const locked=isLocked(key);
+    const inp=row.querySelector(".charin"), dice=row.querySelector(".dice"), lock=row.querySelector(".lock");
+    if(inp){ inp.readOnly=locked; inp.classList.toggle("locked",locked); }
+    if(dice) dice.disabled=locked;
+    if(lock){ lock.textContent=locked?"🔒":"🔓"; lock.classList.toggle("on",locked); lock.setAttribute("aria-pressed",locked?"true":"false"); }
+  }
+
+  document.addEventListener("input", e=>{
+    const t=e.target;
+    if(t.id==="myname"){ picks.me.name=t.value; savePicks(); updateShareOut(); renderRoster(); }
+    else if(t.matches(".charin")){ const k=t.dataset.pick; if(isLocked(k)) return; myVals[k]=t.value; savePicks(); updateShareOut(); renderRoster(); }
+  });
+  document.addEventListener("click", e=>{
+    const dice=e.target.closest(".dice");
+    if(dice){ randomFor(dice.dataset.key); return; }
+    const lock=e.target.closest(".lock");
+    if(lock){ const k=lock.dataset.lock; if(isLocked(k)) delete picks.me.locks[k]; else picks.me.locks[k]=true; savePicks(); applyLock(k); }
+  });
+  document.getElementById("surprise-me").addEventListener("click", ()=>{ PICK_THEMES.forEach(t=>randomFor(t.key)); });
+  document.getElementById("clear-mine").addEventListener("click", ()=>{
+    if(!confirm("Clear your unlocked picks? (Locked ones and your name stay.)")) return;
+    PICK_THEMES.forEach(t=>{ if(!isLocked(t.key)){ delete myVals[t.key];
+      const inp=document.querySelector(`.charin[data-pick="${t.key}"]`); if(inp) inp.value=""; } });
+    savePicks(); updateShareOut(); renderRoster();
+  });
+  document.getElementById("copy-picks").addEventListener("click", ()=>{
+    updateShareOut(); outEl.focus(); outEl.select();
+    const done = ()=>flash("Copied! Paste it into your family chat. 🎉","ok");
+    if(navigator.clipboard && navigator.clipboard.writeText){
+      navigator.clipboard.writeText(outEl.value).then(done).catch(()=>flash("Select the code above and copy it manually.","err"));
+    } else {
+      try{ document.execCommand("copy"); done(); }catch(e){ flash("Select the code above and copy it manually.","err"); }
+    }
+  });
+  document.getElementById("add-picks").addEventListener("click", ()=>{
+    const inb=document.getElementById("share-in"); const data=dec(inb.value);
+    if(!data || !data.n || typeof data.p!=="object"){ flash("That code didn't look right — copy the whole thing and try again.","err"); return; }
+    const nm=String(data.n).trim() || "Someone";
+    picks.roster[nm]=nonEmpty(data.p); savePicks(); renderRoster();
+    inb.value=""; flash(`Added ${nm}'s picks! 🎉`,"ok");
+  });
+  document.getElementById("clear-roster").addEventListener("click", ()=>{
+    if(!confirm("Remove everyone else's picks from this device? (Your own picks stay.)")) return;
+    picks.roster={}; savePicks(); renderRoster(); flash("Cleared everyone else's picks.","ok");
+  });
+
+  updateShareOut();
+  renderRoster();
+
+  const boxes = [...document.querySelectorAll('input.vis')];
+  const fill = document.getElementById("fill");
+  const pctEl = document.getElementById("pct");
+  const note = document.getElementById("note");
+
+  function refresh(){
+    const total = boxes.length, done = boxes.filter(b=>b.checked).length;
+    const pct = total ? Math.round(done/total*100) : 0;
+    fill.style.width = pct + "%"; pctEl.textContent = pct + "%";
+    if(pct===100){ note.textContent = "All packed — ready for the magic! 🎉"; note.classList.add("done"); }
+    else { note.textContent = `${done} of ${total} packed`; note.classList.remove("done"); }
+    PACKING.forEach(col=>{
+      const bs=[...document.querySelectorAll(`input[data-key^="p.${col.id}."]`)];
+      document.querySelector(`[data-colcount="${col.id}"]`).textContent = `${bs.filter(b=>b.checked).length} of ${bs.length} packed`;
+    });
+  }
+
+  document.addEventListener("change", e=>{
+    const b=e.target;
+    if(b.matches('input.vis')){
+      state[b.dataset.key]=b.checked; save();
+      if(b.checked){ const ck=b.parentElement.querySelector(".check");
+        if(ck){ ck.classList.remove("pop"); void ck.offsetWidth; ck.classList.add("pop"); } }
+      refresh();
+    }
+  });
+  document.getElementById("reset").addEventListener("click", ()=>{
+    if(!confirm("Clear all packing checkmarks and start fresh?")) return;
+    state={}; save(); boxes.forEach(b=>b.checked=false); refresh();
+  });
+  document.getElementById("checkall").addEventListener("click", ()=>{
+    boxes.forEach(b=>{ b.checked=true; state[b.dataset.key]=true; }); save(); refresh();
+  });
+  refresh();
+
+  const navlinks = {};
+  document.querySelectorAll(".navpill").forEach(p=>navlinks[p.dataset.nav]=p);
+  if("IntersectionObserver" in window){
+    const io = new IntersectionObserver(entries=>{
+      entries.forEach(en=>{
+        if(en.isIntersecting){
+          Object.values(navlinks).forEach(p=>p.classList.remove("active"));
+          const p = navlinks[en.target.dataset.day];
+          if(p){ p.classList.add("active"); p.scrollIntoView({block:"nearest", inline:"center", behavior:"smooth"}); }
+        }
+      });
+    }, {rootMargin:"-45% 0px -50% 0px"});
+    document.querySelectorAll(".day").forEach(d=>io.observe(d));
+  }
+
+  // Tabs
+  const tabBar = document.querySelector(".tabs");
+  const tabs = [...document.querySelectorAll(".tab")];
+  const panels = { itin: document.getElementById("panel-itin"), pack: document.getElementById("panel-pack"), picks: document.getElementById("panel-picks") };
+  const daynavEl = document.querySelector(".daynav");
+  function setNavOffset(){ if(daynavEl && tabBar) daynavEl.style.top = tabBar.offsetHeight + "px"; }
+  function selectTab(name){
+    tabs.forEach(t=>{ const on=t.dataset.tab===name; t.classList.toggle("active",on); t.setAttribute("aria-selected", on?"true":"false"); });
+    Object.entries(panels).forEach(([k,p])=>{ if(p) p.hidden = (k!==name); });
+    try{ localStorage.setItem("wdw-tab", name); }catch(e){}
+    setNavOffset();
+    if(tabBar && window.scrollY > tabBar.offsetTop) window.scrollTo({top: tabBar.offsetTop});
+  }
+  tabs.forEach(t=>t.addEventListener("click", ()=>selectTab(t.dataset.tab)));
+  const _savedTab = localStorage.getItem("wdw-tab");
+  selectTab(panels[_savedTab] ? _savedTab : "itin");
+  window.addEventListener("resize", setNavOffset);
+  setNavOffset();
+
+  const root=document.documentElement, tt=document.getElementById("tt");
+  const saved=localStorage.getItem("wdw-theme"); if(saved) root.setAttribute("data-theme",saved);
+  tt.addEventListener("click", ()=>{
+    const cur=root.getAttribute("data-theme") || (matchMedia("(prefers-color-scheme: dark)").matches?"dark":"light");
+    const next=cur==="dark"?"light":"dark";
+    root.setAttribute("data-theme",next); localStorage.setItem("wdw-theme",next);
+  });
+</script>
