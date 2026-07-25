@@ -159,6 +159,15 @@
 
   /* Share codes + roster */
   .share-io{margin-top:26px; background:var(--card); border:1px solid var(--border); border-radius:20px; padding:18px; box-shadow:var(--shadow)}
+  .live-banner{display:flex; align-items:center; gap:13px; flex-wrap:wrap;
+    background:color-mix(in srgb, #2E9E4A 10%, transparent); border:1px solid color-mix(in srgb, #2E9E4A 30%, transparent);
+    border-radius:14px; padding:13px 15px}
+  .live-dot{width:11px; height:11px; border-radius:50%; background:#2E9E4A; flex:none;
+    box-shadow:0 0 0 4px color-mix(in srgb, #2E9E4A 22%, transparent); animation:livepulse 2s ease-in-out infinite}
+  .live-txt{flex:1; min-width:190px; font-size:13.5px; font-weight:500; color:var(--ink)}
+  .live-txt b{font-weight:800}
+  .live-banner .ctl{margin:0}
+  @keyframes livepulse{0%,100%{box-shadow:0 0 0 4px color-mix(in srgb, #2E9E4A 22%, transparent)}50%{box-shadow:0 0 0 7px color-mix(in srgb, #2E9E4A 6%, transparent)}}
   .io-lbl{display:block; font-size:11.5px; font-weight:800; letter-spacing:.1em; text-transform:uppercase; color:var(--faint); margin:0 0 7px}
   .io-box{width:100%; font-family:var(--sans); font-size:13px; font-weight:600; color:var(--ink); background:var(--card-2);
     border:1px solid var(--border); border-radius:12px; padding:11px 13px; resize:vertical; line-height:1.45; word-break:break-all; margin-bottom:14px}
@@ -325,7 +334,7 @@
   <section class="panel" id="panel-picks" role="tabpanel" aria-labelledby="tab-picks" hidden>
     <div class="wrap">
       <div class="block">
-        <p class="sec-note">Pick <b>your own</b> costume for each dress-up day (type it, tap 🎲 for a surprise, or 🔒 to lock it in). Then tap <b>Copy my picks</b> and share the code with the family. Paste anyone else's code below to see everyone together. Your picks save on this device.</p>
+        <p class="sec-note">Pick <b>your own</b> costume for each dress-up day — type it, tap 🎲 for a surprise, or 🔒 to lock it in. Everyone's picks show up on the board below.</p>
 
         <div class="crew">
           <span class="crew-lbl">Your name</span>
@@ -341,13 +350,20 @@
         </div>
 
         <div class="share-io">
-          <label class="io-lbl" for="share-out">Your picks code — copy &amp; send to the family</label>
-          <textarea id="share-out" class="io-box" readonly rows="2" aria-label="Your picks code"></textarea>
-          <label class="io-lbl" for="share-in">Add someone's picks</label>
-          <textarea id="share-in" class="io-box" rows="2" placeholder="Paste a family member's picks code here…" aria-label="Paste a picks code"></textarea>
-          <div class="controls left">
-            <button class="ctl primary" id="add-picks">Add these picks</button>
-            <button class="ctl ghost" id="clear-roster">Clear everyone</button>
+          <div id="live-banner" class="live-banner" hidden>
+            <span class="live-dot"></span>
+            <div class="live-txt"><b>Live board connected.</b> Your picks sync automatically — everyone with the link sees them update in real time.</div>
+            <button class="ctl primary" id="copy-link">🔗 Copy family link</button>
+          </div>
+          <div id="code-tools">
+            <label class="io-lbl" for="share-out">Your picks code — copy &amp; send to the family</label>
+            <textarea id="share-out" class="io-box" readonly rows="2" aria-label="Your picks code"></textarea>
+            <label class="io-lbl" for="share-in">Add someone's picks</label>
+            <textarea id="share-in" class="io-box" rows="2" placeholder="Paste a family member's picks code here…" aria-label="Paste a picks code"></textarea>
+            <div class="controls left">
+              <button class="ctl primary" id="add-picks">Add these picks</button>
+              <button class="ctl ghost" id="clear-roster">Clear everyone</button>
+            </div>
           </div>
           <p class="io-msg" id="io-msg" role="status" aria-live="polite"></p>
         </div>
@@ -364,7 +380,19 @@
   </footer>
 </div>
 
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.5/firebase-database-compat.js"></script>
 <script>
+  const FIREBASE_CONFIG = {
+    apiKey: "AIzaSyCRWg2VRymc6QY-gpWxYL7CR8AYmuT8GLE",
+    authDomain: "disney-week.firebaseapp.com",
+    databaseURL: "https://disney-week-default-rtdb.firebaseio.com",
+    projectId: "disney-week",
+    storageBucket: "disney-week.firebasestorage.app",
+    messagingSenderId: "480132455526",
+    appId: "1:480132455526:web:138f2995673498496e21a7"
+  };
+
   const DAYS = [
     { id:"sun", when:"Sunday", abbr:"SUN", date:"August 2", park:"Grand Floridian", icon:"🛎️", c:"#0FA89A",
       theme:"Alice in Wonderland",
@@ -523,6 +551,8 @@
   if(!picks.me.locks || typeof picks.me.locks!=="object") picks.me.locks={};
   if(!picks.roster || typeof picks.roster!=="object") picks.roster={};
   const myVals = picks.me.vals;
+  let RT = null, liveBoard = null;           // set when the hosted Firebase board is connected
+  function syncMine(){ if(RT && RT.pushMine) RT.pushMine(); }
   function isLocked(key){ return !!picks.me.locks[key]; }
   function nonEmpty(o){ const r={}; for(const k in o){ const v=o[k]; if(v && String(v).trim()) r[k]=v; } return r; }
 
@@ -558,7 +588,13 @@
   function renderRoster(){
     const meName = (picks.me.name||"").trim() || "You";
     const everyone = [{ name:meName, vals:myVals, me:true }];
-    for(const nm in picks.roster){ if(nm===meName) continue; everyone.push({ name:nm, vals:picks.roster[nm] }); }
+    if(RT){
+      const board = liveBoard || {};
+      for(const id in board){ if(id===RT.uid) continue; const v=board[id]||{};
+        everyone.push({ name:(v.name && v.name.trim()) ? v.name.trim() : "Someone", vals:v.vals||{} }); }
+    } else {
+      for(const nm in picks.roster){ if(nm===meName) continue; everyone.push({ name:nm, vals:picks.roster[nm] }); }
+    }
     let html = "";
     PICK_THEMES.forEach(t=>{
       const chips = everyone.map(p=>{ const v=p.vals && p.vals[t.key];
@@ -583,7 +619,7 @@
     if(pool.length>1){ let g=0; while(pick===cur && g++<8) pick = pool[Math.floor(Math.random()*pool.length)]; }
     myVals[key]=pick; savePicks();
     const inp=document.querySelector(`.charin[data-pick="${key}"]`); if(inp) inp.value=pick;
-    updateShareOut(); renderRoster();
+    updateShareOut(); renderRoster(); syncMine();
   }
   function applyLock(key){
     const row=document.querySelector(`[data-row="${key}"]`); if(!row) return;
@@ -596,8 +632,8 @@
 
   document.addEventListener("input", e=>{
     const t=e.target;
-    if(t.id==="myname"){ picks.me.name=t.value; savePicks(); updateShareOut(); renderRoster(); }
-    else if(t.matches(".charin")){ const k=t.dataset.pick; if(isLocked(k)) return; myVals[k]=t.value; savePicks(); updateShareOut(); renderRoster(); }
+    if(t.id==="myname"){ picks.me.name=t.value; savePicks(); updateShareOut(); renderRoster(); syncMine(); }
+    else if(t.matches(".charin")){ const k=t.dataset.pick; if(isLocked(k)) return; myVals[k]=t.value; savePicks(); updateShareOut(); renderRoster(); syncMine(); }
   });
   document.addEventListener("click", e=>{
     const dice=e.target.closest(".dice");
@@ -610,7 +646,7 @@
     if(!confirm("Clear your unlocked picks? (Locked ones and your name stay.)")) return;
     PICK_THEMES.forEach(t=>{ if(!isLocked(t.key)){ delete myVals[t.key];
       const inp=document.querySelector(`.charin[data-pick="${t.key}"]`); if(inp) inp.value=""; } });
-    savePicks(); updateShareOut(); renderRoster();
+    savePicks(); updateShareOut(); renderRoster(); syncMine();
   });
   document.getElementById("copy-picks").addEventListener("click", ()=>{
     updateShareOut(); outEl.focus(); outEl.select();
@@ -632,6 +668,37 @@
     if(!confirm("Remove everyone else's picks from this device? (Your own picks stay.)")) return;
     picks.roster={}; savePicks(); renderRoster(); flash("Cleared everyone else's picks.","ok");
   });
+
+  // Real-time board — active only when the Firebase SDK loaded (i.e. on the hosted site)
+  function setupRealtime(){
+    if(typeof firebase==="undefined" || !firebase.database || typeof FIREBASE_CONFIG==="undefined") return null;
+    try{
+      if(!firebase.apps || !firebase.apps.length) firebase.initializeApp(FIREBASE_CONFIG);
+      const db = firebase.database();
+      let uid = localStorage.getItem("wdw-uid");
+      if(!uid){ uid = "u"+Math.random().toString(36).slice(2,10)+Date.now().toString(36); localStorage.setItem("wdw-uid", uid); }
+      const myRef = db.ref("board/"+uid);
+      let t=null;
+      function pushMine(){ clearTimeout(t); t=setTimeout(()=>{
+        myRef.set({ name:(picks.me.name||"").trim(), vals:nonEmpty(myVals), ts:firebase.database.ServerValue.TIMESTAMP }).catch(()=>{});
+      }, 350); }
+      db.ref("board").on("value", snap=>{ liveBoard = snap.val() || {}; renderRoster(); }, ()=>{});
+      return { pushMine, uid, db };
+    }catch(e){ return null; }
+  }
+  RT = setupRealtime();
+  if(RT){
+    const ct=document.getElementById("code-tools"); if(ct) ct.hidden=true;
+    const cp=document.getElementById("copy-picks"); if(cp) cp.hidden=true;
+    const bn=document.getElementById("live-banner"); if(bn) bn.hidden=false;
+    const cl=document.getElementById("copy-link");
+    if(cl) cl.addEventListener("click", ()=>{
+      const url = location.href.split("#")[0].split("?")[0];
+      const done = ()=>flash("Link copied! Send it to the family. 🎉","ok");
+      if(navigator.clipboard && navigator.clipboard.writeText){ navigator.clipboard.writeText(url).then(done).catch(()=>flash(url,"ok")); }
+      else flash(url,"ok");
+    });
+  }
 
   updateShareOut();
   renderRoster();
